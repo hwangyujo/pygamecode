@@ -15,7 +15,8 @@ BLUE = (0, 0, 255)
 GREEN = (0, 255, 0)
 YELLOW = (255, 223, 0)
 PURPLE = (128, 0, 128)
-FLOOR_COLOR = (144, 228, 144)  
+FLOOR_COLOR = (144, 228, 144)
+ORANGE = (255, 165, 0)  # 새로운 적 색깔
 
 # 캐릭터 속성 설정
 character_width, character_height = 40, 40
@@ -52,9 +53,9 @@ stage1_enemy_positions = [
     (550, 250)
 ]
 stage1_powerup_positions = [
-    (150, 480),
-    (350, 380),
-    (550, 280)
+    (100 + (platform_width // 2 - powerup_radius), 500 - powerup_radius * 2),
+    (300 + (platform_width // 2 - powerup_radius), 400 - powerup_radius * 2),
+    (500 + (platform_width // 2 - powerup_radius), 300 - powerup_radius * 2)
 ]
 
 # 스테이지 2 설정
@@ -70,9 +71,9 @@ stage2_enemy_positions = [
     (550, 200)
 ]
 stage2_powerup_positions = [
-    (150, 430),
-    (350, 330),
-    (500, 230)
+    (150 + (platform_width // 2 - powerup_radius), 450 - powerup_radius * 2),
+    (350 + (platform_width // 2 - powerup_radius), 350 - powerup_radius * 2),
+    (500 + (platform_width // 2 - powerup_radius), 200 - powerup_radius * 2)
 ]
 
 # 블록 클래스 정의
@@ -87,6 +88,26 @@ class Enemy:
         self.x = x
         self.y = y
         self.direction = 1
+
+# 새로운 추적형 적 클래스 정의
+class ChasingEnemy:
+    def __init__(self, x, y, speed):
+        self.x = x
+        self.y = y
+        self.speed = speed
+
+    def update(self, player_x, player_y):
+        if player_x > self.x:
+            self.x += self.speed
+        elif player_x < self.x:
+            self.x -= self.speed
+
+    def draw(self, screen):
+        # 가시공 모양 그리기
+        pygame.draw.polygon(screen, ORANGE, [(self.x + enemy_width//2, self.y),  # 꼭짓점 1
+                                              (self.x + enemy_width, self.y + enemy_height//2),  # 꼭짓점 2
+                                              (self.x + enemy_width//2, self.y + enemy_height),  # 꼭짓점 3
+                                              (self.x, self.y + enemy_height//2)])  # 꼭짓점 4
 
 # 파워업 클래스 정의
 class PowerUp:
@@ -105,11 +126,12 @@ def init_stage(blocks_positions, enemy_positions, powerup_positions):
     blocks = [Block(x, y) for x, y in blocks_positions]
     enemies = [Enemy(x, y) for x, y in enemy_positions]
     powerups = [PowerUp(x, y) for x, y in powerup_positions]
-    return blocks, enemies, powerups
+    chasing_enemy = ChasingEnemy(650, 150, 2)  # 새로운 추적형 적 추가
+    return blocks, enemies, powerups, chasing_enemy
 
 # 초기 스테이지 설정
 current_stage = 1
-blocks, enemies, powerups = init_stage(stage1_blocks_positions, stage1_enemy_positions, stage1_powerup_positions)
+blocks, enemies, powerups, chasing_enemy = init_stage(stage1_blocks_positions, stage1_enemy_positions, stage1_powerup_positions)
 
 # 포탈 초기화
 portal = None
@@ -131,6 +153,9 @@ space_pressed = False
 score = 0
 time_limit = 20  # 게임 시간 제한 (초)
 start_ticks = pygame.time.get_ticks()  # 시작 시간
+powerup_effect_duration = 5  # 파워업 효과 지속 시간 (초)
+powerup_effect_start_time = 0  # 파워업 효과 시작 시간
+powerup_effect = None
 
 while running:
     screen.fill(WHITE)
@@ -162,6 +187,19 @@ while running:
     if keys[pygame.K_RIGHT]:
         character_x += character_speed
 
+    # 파워업 효과 적용
+    if powerup_effect:
+        if powerup_effect == "speed":
+            character_speed = 10  # 속도 증가 효과
+        elif powerup_effect == "jump":
+            jump_speed = 25  # 점프 높이 증가 효과
+        
+        # 파워업 효과 지속 시간 체크
+        if (pygame.time.get_ticks() - powerup_effect_start_time) / 1000 > powerup_effect_duration:
+            character_speed = 7.5
+            jump_speed = 20
+            powerup_effect = None
+
     # 화면 범위 제한 및 바닥 충돌 처리
     character_x = max(0, min(SCREEN_WIDTH - character_width, character_x))
     vertical_momentum += gravity
@@ -187,11 +225,18 @@ while running:
     if enemy_collided:
         running = False  # 적과 충돌하면 게임 종료
 
+    # 추적형 적 업데이트 및 충돌 검사
+    chasing_enemy.update(character_x, character_y)
+    if character_rect.colliderect(pygame.Rect(chasing_enemy.x, chasing_enemy.y, enemy_width, enemy_height)):
+        running = False  # 추적형 적과 충돌하면 게임 종료
+
     # 파워업 충돌 검사 및 처리
     powerup_collided = check_collision(character_rect, powerups, powerup_radius * 2, powerup_radius * 2)
     if powerup_collided:
         powerups.remove(powerup_collided)
         score += 10  # 파워업 수집 시 점수 증가
+        powerup_effect = random.choice(["speed", "jump"])
+        powerup_effect_start_time = pygame.time.get_ticks()
 
     # 모든 파워업을 수집하면 포탈 생성
     if not powerups and not portal:
@@ -205,7 +250,7 @@ while running:
         if character_rect.colliderect(portal_rect):
             if current_stage == 1:
                 # 스테이지 2로 이동
-                blocks, enemies, powerups = init_stage(stage2_blocks_positions, stage2_enemy_positions, stage2_powerup_positions)
+                blocks, enemies, powerups, chasing_enemy = init_stage(stage2_blocks_positions, stage2_enemy_positions, stage2_powerup_positions)
                 current_stage = 2
                 portal = None
                 character_x, character_y = SCREEN_WIDTH // 2, SCREEN_HEIGHT - character_height * 2
@@ -219,6 +264,9 @@ while running:
         if enemy.x <= 0 or enemy.x >= SCREEN_WIDTH - enemy_width:
             enemy.direction *= -1  # 화면 끝에 도달하면 방향 전환
         pygame.draw.rect(screen, GREEN, (enemy.x, enemy.y, enemy_width, enemy_height))
+
+    # 추적형 적 그리기
+    chasing_enemy.draw(screen)
 
     # 바닥 그리기
     pygame.draw.rect(screen, FLOOR_COLOR, (0, floor_y, SCREEN_WIDTH, floor_height))
