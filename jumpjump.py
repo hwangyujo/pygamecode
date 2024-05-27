@@ -1,6 +1,7 @@
 import pygame
 import sys
 import random
+
 pygame.init()
 
 # 화면 크기 설정
@@ -171,7 +172,7 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
+              if event.key == pygame.K_SPACE:
                 space_pressed = True
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_SPACE:
@@ -235,8 +236,8 @@ while running:
     if powerup_collided:
         powerups.remove(powerup_collided)
         score += 10  # 파워업 수집 시 점수 증가
-        powerup_effect = random.choice(["speed", "jump"])
-        powerup_effect_start_time = pygame.time.get_ticks()
+        # 파워업 효과를 없앰
+        powerup_effect = None
 
     # 모든 파워업을 수집하면 포탈 생성
     if not powerups and not portal:
@@ -300,4 +301,3 @@ while running:
 
 pygame.quit()
 sys.exit()
-
