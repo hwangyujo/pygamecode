@@ -20,11 +20,11 @@ FLOOR_COLOR = (144, 228, 144)
 ORANGE = (255, 165, 0)  # 새로운 적 색깔
 
 # 캐릭터 속성 설정
-character_width, character_height = 40, 40
+character_width, character_height = 20, 20
 character_x, character_y = SCREEN_WIDTH // 2, SCREEN_HEIGHT - character_height * 2
-character_speed = 7.5
+character_speed = 6
 jump_speed = 20
-gravity = 1.25
+gravity = 1.4
 
 # 바닥 속성 설정
 floor_height = 22  # 바닥 두께
