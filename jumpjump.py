@@ -17,6 +17,7 @@ GREEN = (0, 255, 0)
 YELLOW = (255, 223, 0)
 PURPLE = (128, 0, 128)
 FLOOR_COLOR = (144, 228, 144)
+BLACK = (0, 0, 0)
 ORANGE = (255, 165, 0)  # 새로운 적 색깔
 
 # 캐릭터 속성 설정
@@ -51,7 +52,8 @@ stage1_blocks_positions = [
 stage1_enemy_positions = [
     (150, 450),
     (350, 350),
-    (550, 250)
+    (550, 250),
+    (750, 150)
 ]
 stage1_powerup_positions = [
     (100 + (platform_width // 2 - powerup_radius), 500 - powerup_radius * 2),
@@ -64,17 +66,43 @@ stage2_blocks_positions = [
     (150, 450),
     (350, 350),
     (500, 200),
-    (700, 150)
+    (700, 150),
+    (200, 250),  # 변경된 위치 - 추가 발판
+    (600, 300)   # 변경된 위치 - 추가 발판
 ]
 stage2_enemy_positions = [
-    (150, 400),
-    (350, 300),
-    (550, 200)
+    (100, 450),
+    (250, 350),
+    (400, 250),
+    (600, 150),
+    (200, 400),  # 변경된 위치 - 추가 발판
+    (550, 300)   # 변경된 위치 - 추가 발판
 ]
 stage2_powerup_positions = [
     (150 + (platform_width // 2 - powerup_radius), 450 - powerup_radius * 2),
     (350 + (platform_width // 2 - powerup_radius), 350 - powerup_radius * 2),
     (500 + (platform_width // 2 - powerup_radius), 200 - powerup_radius * 2)
+]
+
+# 스테이지 3 설정
+stage3_blocks_positions = [
+    (100, 450),
+    (250, 350),
+    (400, 250),
+    (600, 150),
+    (550, 300)   # 변경된 위치 - 추가 발판
+]
+stage3_enemy_positions = [
+    (100, 400),
+    (250, 300),
+    (400, 200),
+    (650, 100),
+    (600, 250)
+]
+stage3_powerup_positions = [
+    (100 + (platform_width // 2 - powerup_radius), 450 - powerup_radius * 2),
+    (250 + (platform_width // 2 - powerup_radius), 350 - powerup_radius * 2),
+    (400 + (platform_width // 2 - powerup_radius), 250 - powerup_radius * 2)
 ]
 
 # 블록 클래스 정의
@@ -105,10 +133,10 @@ class ChasingEnemy:
 
     def draw(self, screen):
         # 가시공 모양 그리기
-        pygame.draw.polygon(screen, ORANGE, [(self.x + enemy_width//2, self.y),  # 꼭짓점 1
-                                              (self.x + enemy_width, self.y + enemy_height//2),  # 꼭짓점 2
-                                              (self.x + enemy_width//2, self.y + enemy_height),  # 꼭짓점 3
-                                              (self.x, self.y + enemy_height//2)])  # 꼭짓점 4
+        pygame.draw.polygon(screen, BLACK, [(self.x + enemy_width//2, self.y),  # 꼭짓점 1
+                                            (self.x + enemy_width, self.y + enemy_height//2),  # 꼭짓점 2
+                                            (self.x + enemy_width//2, self.y + enemy_height),  # 꼭짓점 3
+                                            (self.x, self.y + enemy_height//2)])  # 꼭짓점 4
 
 # 파워업 클래스 정의
 class PowerUp:
@@ -236,9 +264,7 @@ while running:
     if powerup_collided:
         powerups.remove(powerup_collided)
         score += 10  # 파워업 수집 시 점수 증가
-        # 파워업 효과를 없앰
-        powerup_effect = None
-
+        
     # 모든 파워업을 수집하면 포탈 생성
     if not powerups and not portal:
         last_block = blocks[-1]
@@ -256,8 +282,15 @@ while running:
                 portal = None
                 character_x, character_y = SCREEN_WIDTH // 2, SCREEN_HEIGHT - character_height * 2
                 start_ticks = pygame.time.get_ticks()  # 새로운 스테이지에서 시간 초기화
+            elif current_stage == 2:
+                # 스테이지 3로 이동
+                blocks, enemies, powerups, chasing_enemy = init_stage(stage3_blocks_positions, stage3_enemy_positions, stage3_powerup_positions)
+                current_stage = 3
+                portal = None
+                character_x, character_y = SCREEN_WIDTH // 2, SCREEN_HEIGHT - character_height * 2
+                start_ticks = pygame.time.get_ticks()  # 새로운 스테이지에서 시간 초기화
             else:
-                running = False  # 스테이지 2에서 포탈에 도달하면 게임 종료 (또는 다음 스테이지로 이동 가능)
+                running = False  # 스테이지 3에서 포탈에 도달하면 게임 종료 (또는 다음 스테이지로 이동 가능)
 
     # 적 이동 및 화면 그리기
     for enemy in enemies:
@@ -275,7 +308,7 @@ while running:
     # 발판 그리기
     for block in blocks:
         pygame.draw.rect(screen, platform_color, (block.x, block.y, platform_width, platform_height))
-
+        
     # 파워업 그리기
     for powerup in powerups:
         pygame.draw.circle(screen, YELLOW, (powerup.x + powerup_radius, powerup.y + powerup_radius), powerup_radius)
